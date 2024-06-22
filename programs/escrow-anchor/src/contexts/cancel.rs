@@ -5,7 +5,7 @@ use crate::EscrowAccount;
 
 #[derive(Accounts)]
 pub struct Cancel<'info> {
-    #[account(mut, signer)]
+    #[account(mut)]
     pub initializer: Signer<'info>,
     #[account(mut)]
     pub initializer_deposit_token_account: Account<'info, TokenAccount>,
@@ -19,7 +19,7 @@ pub struct Cancel<'info> {
         constraint = escrow_account.initializer_deposit_token_account == *initializer_deposit_token_account.to_account_info().key,
         close = initializer
     )]
-    pub escrow_account: Box<Account<'info, EscrowAccount>>,
+    pub escrow_account: Account<'info, EscrowAccount>,
     /// CHECK:
     pub token_program: Program<'info, Token>,
 }

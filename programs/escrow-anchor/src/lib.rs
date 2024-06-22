@@ -104,7 +104,8 @@ pub mod escrow_anchor {
 
         token::transfer(
             ctx.accounts
-                .into_transfer_to_taker_context(), 
+                .into_transfer_to_taker_context()
+                .with_signer(&[&authority_seeds[..]]), 
             ctx.accounts.escrow_account.initializer_amount
         )?;
 

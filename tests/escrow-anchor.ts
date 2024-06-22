@@ -8,7 +8,6 @@ import {
     mintTo, 
     getAccount, 
     Account, 
-    TOKEN_PROGRAM_ID 
 } from "@solana/spl-token";
 import { expect } from "chai";
 
@@ -152,17 +151,11 @@ describe("escrow-anchor", () => {
             .accounts({
                 initializer: initializerMainAccount.publicKey,
                 mint: mintA,
-                // vaultAccount: vault_account_pda,
                 initializerDepositTokenAccount: initializerTokenAccountA.address,
                 initializerReceiveTokenAccount: initializerTokenAccountB.address,
-                // escrowAccount: escrow_account_pda,
-                // systemProgram: SystemProgram.programId,
-                // rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-                // tokenProgram: TOKEN_PROGRAM_ID
             })
             .signers([
                 initializerMainAccount,
-                // escrowAccount
             ])
             .rpc()
 
@@ -183,12 +176,78 @@ describe("escrow-anchor", () => {
         expect(Number(escrowData.takerAmount)).to.equal(takerAmount)
     });
 
-    it("Exchange escrow state", async () => {
-        // TODO
+    it("Cancels escrow", async () => {
+        await program.methods
+            .cancel()
+            .accounts({
+                initializer: initializerMainAccount.publicKey,
+                initializerDepositTokenAccount: initializerTokenAccountA.address,
+                vaultAccount: vault_account_pda,
+                vaultAuthority: escrow_account_pda,
+                escrowAccount: escrow_account_pda,
+            })
+            .signers([
+                initializerMainAccount
+            ])
+            .rpc()
+
+        const initializerAccountA = await getAccount(
+            connection,
+            initializerTokenAccountA.address
+        );
+
+        expect(Number(initializerAccountA.amount)).to.equal(initializerAmount);
+        
     });
 
-    it("Initialize escrow and cancel escrow", async () => {
-        // TODO
+    it("Exchanges tokens", async () => {
+
+        await program.methods
+            .initialize(
+                new anchor.BN(initializerAmount), 
+                new anchor.BN(takerAmount)
+            )
+            .accounts({
+                initializer: initializerMainAccount.publicKey,
+                mint: mintA,
+                initializerDepositTokenAccount: initializerTokenAccountA.address,
+                initializerReceiveTokenAccount: initializerTokenAccountB.address,
+            })
+            .signers([
+                initializerMainAccount,
+            ])
+            .rpc()
+
+        await program.methods
+            .exchange()
+            .accounts({
+                taker: takerMainAccount.publicKey,
+                takerDepositTokenAccount: takerTokenAccountB.address,
+                takerReceiveTokenAccount: takerTokenAccountA.address,
+                initializerDepositTokenAccount: initializerTokenAccountA.address,
+                initializerReceiveTokenAccount: initializerTokenAccountB.address,
+                initializer: initializerMainAccount.publicKey,
+                escrowAccount: escrow_account_pda,
+                vaultAccount: vault_account_pda,
+                vaultAuthority: escrow_account_pda,
+            })
+            .signers([
+                takerMainAccount,
+            ])
+            .rpc()
+
+        const initializerReceiveTokenAccount = await getAccount(
+            connection,
+            initializerTokenAccountB.address
+        );
+
+        const takerReceiveTokenAccount = await getAccount(
+            connection,
+            takerTokenAccountA.address
+        );
+
+        expect(Number(initializerReceiveTokenAccount.amount)).to.equal(takerAmount);
+        expect(Number(takerReceiveTokenAccount.amount)).to.equal(initializerAmount)
     });
 
 });
