@@ -1,13 +1,12 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{TokenAccount, Transfer, CloseAccount};
+use anchor_spl::token::{CloseAccount, Token, TokenAccount, Transfer};
 
 use crate::EscrowAccount;
 
 #[derive(Accounts)]
 pub struct Cancel<'info> {
-    /// CHECK:
     #[account(mut, signer)]
-    pub initializer: AccountInfo<'info>,
+    pub initializer: Signer<'info>,
     #[account(mut)]
     pub initializer_deposit_token_account: Account<'info, TokenAccount>,
     #[account(mut)]
@@ -18,10 +17,11 @@ pub struct Cancel<'info> {
         mut,
         constraint = escrow_account.initializer_key == *initializer.key,
         constraint = escrow_account.initializer_deposit_token_account == *initializer_deposit_token_account.to_account_info().key,
+        close = initializer
     )]
     pub escrow_account: Box<Account<'info, EscrowAccount>>,
     /// CHECK:
-    pub token_program: AccountInfo<'info>,
+    pub token_program: Program<'info, Token>,
 }
 
 impl<'info> Cancel<'info> {
@@ -35,7 +35,7 @@ impl<'info> Cancel<'info> {
         };
 
         CpiContext::new(
-            self.token_program.clone(), 
+            self.token_program.to_account_info().clone(), 
             cpi_accounts
         )
     }
@@ -45,12 +45,12 @@ impl<'info> Cancel<'info> {
     ) -> CpiContext<'_, '_, '_, 'info, CloseAccount<'info>> {
         let cpi_accounts = CloseAccount {
             account: self.vault_account.to_account_info().clone(),
-            destination: self.initializer.clone(),
+            destination: self.initializer.to_account_info().clone(),
             authority: self.vault_authority.clone()
         };
 
         CpiContext::new(
-            self.token_program.clone(), 
+            self.token_program.to_account_info().clone(), 
             cpi_accounts
         )
     }

@@ -18,7 +18,6 @@ pub mod escrow_anchor {
 
     pub fn initialize(
         ctx: Context<Initialize>,
-        _vault_account_bump: u8,
         initializer_amount: u64,
         taker_amount: u64
     ) -> Result<()> {
